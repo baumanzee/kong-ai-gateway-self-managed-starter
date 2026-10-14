@@ -138,13 +138,19 @@ models:
 # The upstream is a public echo service, so this demonstrates routing and ACLs, not real underwriting.
 mcp_servers:
   - ref: mcp-underwriting
-    name: underwriting-tools
-    type: conversion-only
+    name: underwriting-mcp
+    type: conversion-listener
     enabled: true
     config:
       url: https://httpbin.org
       route:
-        paths: [/internal/underwriting-tools-src]
+        paths: [/mcp/underwriting]
+      logging:
+        payloads: true
+        audits: true
+    access:
+      acl_attribute_type: consumer
+      auth_strategies: [agent-key-auth]
     tools:
       - name: check-eligibility
         description: Basic eligibility pre-check before costly underwriting starts
@@ -188,20 +194,6 @@ mcp_servers:
         access:
           acls:
             allow: [stage-final-approval]
-  - ref: mcp-underwriting-listener
-    name: underwriting-mcp
-    type: listener
-    enabled: true
-    config:
-      route:
-        paths: [/mcp/underwriting]
-      sources: [underwriting-tools]
-      logging:
-        payloads: true
-        audits: true
-    access:
-      acl_attribute_type: consumer
-      auth_strategies: [agent-key-auth]
 
 agents:
   - name: preverification-agent
