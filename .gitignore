@@ -1,4 +1,4 @@
-targets/self-managed/license.json
+targets/self-managed/license.json*
 targets/self-managed/certs/
 targets/self-managed/.env
 dist/

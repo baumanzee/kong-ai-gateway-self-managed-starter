@@ -10,6 +10,7 @@ x-kong-common: &kong-common
     - ./certs/cluster.key:/certs/cluster.key:ro
   env_file: [.env]
   environment: &kong-env
+    KONG_ANONYMOUS_REPORTS: "off"
     KONG_CLUSTER_CERT: /certs/cluster.crt
     KONG_CLUSTER_CERT_KEY: /certs/cluster.key
     KONG_CLUSTER_MTLS: shared

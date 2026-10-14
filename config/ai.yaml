@@ -1,5 +1,5 @@
 # Single source of truth for the consumer-lending AI Gateway (AI Gateway 2.x entity model).
-# Applied with: targets/self-managed/sync.sh  (deck ai sync)
+# Applied with: targets/self-managed/sync.sh  (decK)
 # No secret values live here: provider credentials are vault references (resolved on the data
 # plane from AIGW_* environment variables) and consumer keys are decK env placeholders.
 

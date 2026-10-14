@@ -17,9 +17,12 @@ about 40 requests and consumes provider tokens.
 
 ## Try it by hand
 
-Keys are in `targets/self-managed/.env` (`KEY_*`).
+Keys are in `targets/self-managed/.env` (`KEY_*`). Read them with `grep`; do not `source` the file.
 
 ```bash
+KEY_LOAN_OFFICER_APP=$(grep '^KEY_LOAN_OFFICER_APP=' targets/self-managed/.env | cut -d= -f2-)
+KEY_AGENT_CREDIT_INCOME=$(grep '^KEY_AGENT_CREDIT_INCOME=' targets/self-managed/.env | cut -d= -f2-)
+
 # Model call (OpenAI-compatible)
 curl -sk https://localhost:8443/v1/chat/completions \
   -H "X-API-Key: $KEY_LOAN_OFFICER_APP" -H 'Content-Type: application/json' \
