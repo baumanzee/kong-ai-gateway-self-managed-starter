@@ -4,10 +4,11 @@
 # plane from AIGW_* environment variables) and consumer keys are decK env placeholders.
 
 vaults:
-  - name: env
+  - name: aigw-env   # 'env' itself is a reserved vault prefix
     type: env
     config:
       prefix: AIGW_
+      base64_decode: false
 
 model_providers:
   - name: openai-primary
@@ -17,7 +18,7 @@ model_providers:
         type: basic
         headers:
           - name: Authorization
-            value: "{vault://env/openai-auth-header}"
+            value: "{vault://aigw-env/openai-auth-header}"
 
 auth_strategies:
   - ref: key-auth
