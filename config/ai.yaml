@@ -1,0 +1,261 @@
+# Single source of truth for the consumer-lending AI Gateway (AI Gateway 2.x entity model).
+# Applied with: targets/self-managed/sync.sh  (deck ai sync)
+# No secret values live here: provider credentials are vault references (resolved on the data
+# plane from AIGW_* environment variables) and consumer keys are decK env placeholders.
+
+vaults:
+  - name: env
+    type: env
+    config:
+      prefix: AIGW_
+
+model_providers:
+  - name: openai-primary
+    type: openai
+    config:
+      auth:
+        type: basic
+        headers:
+          - name: Authorization
+            value: "{vault://env/openai-auth-header}"
+
+auth_strategies:
+  - ref: key-auth
+    name: agent-key-auth
+    type: key-auth
+    config:
+      key_names: [X-API-Key]
+      key_in_header: true
+      key_in_query: false
+      hide_credentials: true
+
+# One group per underwriting stage. Model, tool and agent ACLs reference groups, so a new
+# lending product reuses the same groups.
+consumer_groups:
+  - name: lending-all
+  - name: stage-preverification
+  - name: stage-credit-income
+  - name: stage-risk-rating
+  - name: stage-stipulations
+  - name: stage-final-approval
+  - name: invocation-headless
+
+consumers:
+  - name: loan-officer-app
+    type: api-key
+    consumer_groups: [lending-all]
+    credentials:
+      - name: loan-officer-app-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_LOAN_OFFICER_APP\" }}"
+  - name: agent-preverification
+    type: api-key
+    consumer_groups: [lending-all, stage-preverification]
+    credentials:
+      - name: agent-preverification-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_AGENT_PREVERIFICATION\" }}"
+  - name: agent-credit-income
+    type: api-key
+    consumer_groups: [lending-all, stage-credit-income]
+    credentials:
+      - name: agent-credit-income-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_AGENT_CREDIT_INCOME\" }}"
+  - name: agent-risk-rating
+    type: api-key
+    consumer_groups: [lending-all, stage-risk-rating]
+    credentials:
+      - name: agent-risk-rating-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_AGENT_RISK_RATING\" }}"
+  - name: agent-stipulations
+    type: api-key
+    consumer_groups: [lending-all, stage-stipulations]
+    credentials:
+      - name: agent-stipulations-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_AGENT_STIPULATIONS\" }}"
+  - name: agent-final-approval
+    type: api-key
+    consumer_groups: [lending-all, stage-final-approval]
+    credentials:
+      - name: agent-final-approval-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_AGENT_FINAL_APPROVAL\" }}"
+  - name: agent-intake-headless
+    type: api-key
+    consumer_groups: [lending-all, invocation-headless]
+    credentials:
+      - name: agent-intake-headless-key
+        type: api-key
+        api_key: "${{ env \"DECK_KEY_AGENT_INTAKE_HEADLESS\" }}"
+
+# Token budgets: headless (event-triggered) callers get a smaller hourly budget.
+policies:
+  - ref: pol-token-budget
+    name: ai-rate-limiting-advanced
+    type: ai-rate-limiting-advanced
+    enabled: true
+    global: false
+    config:
+      policies:
+        - match:
+            - type: consumer_group
+              values: [invocation-headless]
+          limits:
+            - {limit: 50000, window_size: 3600, tokens_count_strategy: total_tokens}
+        - limits:
+            - {limit: 200000, window_size: 3600, tokens_count_strategy: total_tokens}
+
+models:
+  - name: lending-llm
+    type: model
+    formats:
+      - type: openai
+    capabilities: [generate]
+    access:
+      auth_strategies: [agent-key-auth]
+      acls:
+        allow: [lending-all]
+    config:
+      route:
+        paths: [/v1]
+        model:
+          body_param: model
+          values: [lending-llm]
+    targets:
+      - name: gpt-4o-mini
+        provider: openai-primary
+        config:
+          type: openai
+          input_cost: 0.15
+          output_cost: 0.60
+    policies: [ai-rate-limiting-advanced]
+
+# Tool-level scope: each tool is allowed only for the stage group that needs it.
+# The upstream is a public echo service, so this demonstrates routing and ACLs, not real underwriting.
+mcp_servers:
+  - ref: mcp-underwriting
+    name: underwriting-tools
+    type: conversion-only
+    enabled: true
+    config:
+      url: https://httpbin.org
+      route:
+        paths: [/internal/underwriting-tools-src]
+    tools:
+      - name: check-eligibility
+        description: Basic eligibility pre-check before costly underwriting starts
+        method: POST
+        path: /anything/preverification/eligibility
+        access:
+          acls:
+            allow: [stage-preverification]
+      - name: pull-credit-report
+        description: Retrieve credit report for the applicant
+        method: POST
+        path: /anything/credit/report
+        access:
+          acls:
+            allow: [stage-credit-income]
+      - name: verify-income
+        description: Verify stated income against source documents
+        method: POST
+        path: /anything/income/verify
+        access:
+          acls:
+            allow: [stage-credit-income]
+      - name: score-risk
+        description: Produce a risk rating for the application
+        method: POST
+        path: /anything/risk/score
+        access:
+          acls:
+            allow: [stage-risk-rating]
+      - name: generate-stipulations
+        description: Generate loan stipulations
+        method: POST
+        path: /anything/stipulations/generate
+        access:
+          acls:
+            allow: [stage-stipulations]
+      - name: record-approval
+        description: Record the final approval decision
+        method: POST
+        path: /anything/approval/record
+        access:
+          acls:
+            allow: [stage-final-approval]
+  - ref: mcp-underwriting-listener
+    name: underwriting-mcp
+    type: listener
+    enabled: true
+    config:
+      route:
+        paths: [/mcp/underwriting]
+      sources: [underwriting-tools]
+      logging:
+        payloads: true
+        audits: true
+    access:
+      acl_attribute_type: consumer
+      auth_strategies: [agent-key-auth]
+
+agents:
+  - name: preverification-agent
+    type: a2a
+    enabled: true
+    access:
+      auth_strategies: [agent-key-auth]
+      acls:
+        allow: [lending-all]
+    config:
+      url: https://httpbin.org/anything/agents/preverification
+      route:
+        paths: [/agents/preverification]
+      logging:
+        payloads: true
+        statistics: true
+  - name: credit-income-agent
+    type: a2a
+    enabled: true
+    access:
+      auth_strategies: [agent-key-auth]
+      acls:
+        allow: [stage-preverification, stage-credit-income]
+    config:
+      url: https://httpbin.org/anything/agents/credit-income
+      route:
+        paths: [/agents/credit-income]
+      logging:
+        payloads: true
+        statistics: true
+  - name: risk-rating-agent
+    type: a2a
+    enabled: true
+    access:
+      auth_strategies: [agent-key-auth]
+      acls:
+        allow: [stage-credit-income, stage-risk-rating]
+    config:
+      url: https://httpbin.org/anything/agents/risk-rating
+      route:
+        paths: [/agents/risk-rating]
+      logging:
+        payloads: true
+        statistics: true
+  - name: final-approval-agent
+    type: a2a
+    enabled: true
+    access:
+      auth_strategies: [agent-key-auth]
+      acls:
+        allow: [stage-risk-rating, stage-stipulations, stage-final-approval]
+    config:
+      url: https://httpbin.org/anything/agents/final-approval
+      route:
+        paths: [/agents/final-approval]
+      logging:
+        payloads: true
+        statistics: true
