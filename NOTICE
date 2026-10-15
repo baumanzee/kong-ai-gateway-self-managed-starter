@@ -1,0 +1,9 @@
+Kong AI Gateway self-managed starter
+Copyright 2026 Adam Bauman
+
+The original files in this repository (scripts, configuration, and documentation)
+are licensed under the Apache License, Version 2.0. See LICENSE.
+
+That license does NOT cover the third-party software described in
+THIRD-PARTY-NOTICES.md, including the container image archives published with
+this repository's releases.

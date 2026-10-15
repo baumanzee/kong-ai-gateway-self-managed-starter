@@ -86,3 +86,7 @@ as a variable and the provider credential is silently mangled). Do not `source` 
 | Control plane never becomes healthy | `docker compose logs kong-cp`; a rejected or expired license is reported there. Get a current `license.json` |
 | Data plane never connects | `docker compose logs kong-dp kong-cp`; confirm both containers have the license and the same `certs/` |
 | Requests return 426 | Use `https://localhost:8443` |
+
+## License
+
+The scripts, configuration, and documentation in this repository are under the Apache License 2.0 (`LICENSE`, `NOTICE`). The container image and decK archives published with releases are unmodified third-party software under their own terms. See `THIRD-PARTY-NOTICES.md`. Running Kong AI Gateway requires a valid license from Kong.
