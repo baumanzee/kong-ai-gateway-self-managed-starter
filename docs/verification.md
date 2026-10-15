@@ -15,6 +15,10 @@
 The last two checks make real calls to your model provider. The token-budget check can send up to
 about 40 requests and consumes provider tokens.
 
+If the last two checks return 401, the gateway itself is working: the model provider rejected the
+provider credential in `AIGW_OPENAI_AUTH_HEADER`. A 401 from the provider looks the same as a 401 from
+the gateway, so the five checks before them are the ones that prove the gateway's own behavior.
+
 ## Try it by hand
 
 Keys are in `targets/self-managed/.env` (`KEY_*`). Read them with `grep`; do not `source` the file.

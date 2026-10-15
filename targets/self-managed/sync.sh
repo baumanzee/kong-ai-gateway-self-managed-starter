@@ -4,6 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 [ -f .env ] || { echo "ERROR: .env not found (run ./init-env.sh)" >&2; exit 1; }
+./check-keys.sh "${AI_CONFIG:-../../config/ai.yaml}"
 command -v deck >/dev/null || { echo "ERROR: deck not on PATH; see ../../tools/README.md" >&2; exit 1; }
 # Export only the consumer keys (as DECK_KEY_*); .env is not sourced because values may contain spaces.
 while IFS='=' read -r name value; do export "DECK_${name}=${value}"; done < <(grep -E '^KEY_[A-Z_]+=' .env)

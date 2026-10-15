@@ -17,6 +17,8 @@ fi
 grep -Eq '^AIGW_OPENAI_AUTH_HEADER=.+' .env && ! grep -Eq '^AIGW_OPENAI_AUTH_HEADER=.*REPLACE' .env \
   || fail "AIGW_OPENAI_AUTH_HEADER in .env is empty or still the placeholder. Set it to your model provider credential (for example: Bearer sk-...)."
 
+./check-keys.sh
+
 if [ ! -f certs/cluster.crt ] || [ ! -f certs/cluster.key ]; then
   rm -rf certs/cluster.crt certs/cluster.key   # a half-present pair (or a directory Docker created) breaks the mounts
   ./gen-certs.sh --force

@@ -85,6 +85,9 @@ as a variable and the provider credential is silently mangled). Do not `source` 
 | `sync.sh`: cannot reach the Admin API | The control plane is not up; run `docker compose logs kong-cp` in `targets/self-managed` |
 | Control plane never becomes healthy | `docker compose logs kong-cp`; a rejected or expired license is reported there. Get a current `license.json` |
 | Data plane never connects | `docker compose logs kong-dp kong-cp`; confirm both containers have the license and the same `certs/` |
+| `up.sh` or `sync.sh`: `.env has no value for: KEY_...` | Add a `KEY_<NAME>=` line with a random value (`openssl rand -hex 16`) for each name listed |
+| Migrations fail with "authentication exchange unsuccessful" | `.env` was recreated, so its database password no longer matches the old database volume. Run `targets/self-managed/down.sh --volumes` (this deletes the database), then `up.sh` again |
+| `tests/verify.sh`: model-call checks return 401 | The gateway is fine; your model provider rejected `AIGW_OPENAI_AUTH_HEADER`. Correct it in `.env`, run `up.sh` again, then `sync.sh` |
 | Requests return 426 | Use `https://localhost:8443` |
 
 ## License
