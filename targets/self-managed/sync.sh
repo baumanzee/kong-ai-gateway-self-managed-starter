@@ -11,13 +11,22 @@ while IFS='=' read -r name value; do export "DECK_${name}=${value}"; done < <(gr
 CFG=${AI_CONFIG:-../../config/ai.yaml}
 export DECK_KONG_ADDR=${DECK_KONG_ADDR:-http://127.0.0.1:8001}
 deck() { env -u HTTPS_PROXY deck "$@"; }
-deck gateway ping >/dev/null 2>&1 || { echo "ERROR: cannot reach the control plane Admin API at $DECK_KONG_ADDR" >&2; exit 1; }
+# decK waits 10s per request by default; a small or emulated host can need longer ("context deadline exceeded").
+# Raise SYNC_TIMEOUT (seconds) if you still see that error. Fewer parallel requests keep a slow control plane from timing out.
+TIMEOUT=${SYNC_TIMEOUT:-120}
+PARALLELISM=${SYNC_PARALLELISM:-1}
+if ! ping_out=$(deck gateway ping --timeout "$TIMEOUT" 2>&1); then
+  echo "ERROR: the control plane Admin API at $DECK_KONG_ADDR did not answer: $ping_out" >&2
+  echo "If it is not running, check 'docker compose ps' and 'docker compose logs kong-cp' in targets/self-managed." >&2
+  echo "If it is running but slow, wait until every container shows healthy, or raise SYNC_TIMEOUT (seconds)." >&2
+  exit 1
+fi
 # Convert first, then diff/sync the converted file. 'deck ai sync' does the same two steps but does not
 # substitute the ${{ env }} placeholders, which would store the placeholder text as the consumer keys.
 tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
 deck file ai2kong -s "$CFG" -o "$tmp"
 if [ "${1:-}" = "--diff" ]; then
-  deck gateway diff "$tmp"
+  deck gateway diff --timeout "$TIMEOUT" --parallelism "$PARALLELISM" "$tmp"
 else
-  deck gateway sync --yes "$tmp"
+  deck gateway sync --yes --timeout "$TIMEOUT" --parallelism "$PARALLELISM" "$tmp"
 fi

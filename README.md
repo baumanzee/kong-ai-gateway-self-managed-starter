@@ -88,6 +88,7 @@ as a variable and the provider credential is silently mangled). Do not `source` 
 | `up.sh` or `sync.sh`: `.env has no value for: KEY_...` | Add a `KEY_<NAME>=` line with a random value (`openssl rand -hex 16`) for each name listed |
 | Migrations fail with "authentication exchange unsuccessful" | `.env` was recreated, so its database password no longer matches the old database volume. Run `targets/self-managed/down.sh --volumes` (this deletes the database), then `up.sh` again |
 | `tests/verify.sh`: model-call checks return 401 | The gateway is fine; your model provider rejected `AIGW_OPENAI_AUTH_HEADER`. Correct it in `.env`, run `up.sh` again, then `sync.sh` |
+| `sync.sh`: `making HTTP request … context deadline exceeded` (any endpoint, for example `/snis`) | The control plane answered too slowly for decK's client timeout, usually because the Docker host is small or emulating another CPU architecture. The default is already 120 s. Wait until `docker compose ps` shows every container healthy, give Docker at least 4 CPUs and 8 GB of memory, and raise it with `SYNC_TIMEOUT=300 targets/self-managed/sync.sh`. The same cause can show up as `HTTP status 500 … unexpected error` from the Admin API, or `failed to get type: timeout` in the `kong-cp` logs. Running on a native linux/amd64 host avoids emulation |
 | Requests return 426 | Use `https://localhost:8443` |
 
 ## License

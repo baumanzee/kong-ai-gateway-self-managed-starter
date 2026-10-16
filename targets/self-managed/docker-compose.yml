@@ -60,6 +60,7 @@ services:
       KONG_CLUSTER_LISTEN: 0.0.0.0:8005
       KONG_CLUSTER_TELEMETRY_LISTEN: 0.0.0.0:8006
       KONG_PROXY_LISTEN: "off"
+      KONG_PG_TIMEOUT: "30000"   # ms; default 5000 turns Postgres stalls on a slow host into Admin API 500s
     ports: ["127.0.0.1:8001:8001"]
     healthcheck:
       test: ["CMD", "kong", "health"]
