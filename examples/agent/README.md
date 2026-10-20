@@ -23,8 +23,11 @@ docker run --rm --add-host host.docker.internal:host-gateway \
   kong-sample-agent:1.0.0 "Ask the risk-rating agent to rate applicant APP-1001"
 ```
 
-With no question it runs a default one that uses a tool and another agent. Without internet access, load the
-image first: `gunzip -c kong-sample-agent-1.0.0-amd64.tar.gz | docker load` (checksum in `SHA256SUMS`). With
+With no question it runs a default one that uses a tool and another agent. Without Docker Hub access, download
+`kong-sample-agent-1.0.0-amd64.tar.gz` and `SHA256SUMS` from the
+[v1.0.0 release](https://github.com/baumanzee/kong-ai-gateway-self-managed-starter/releases/tag/v1.0.0), check it
+(`grep kong-sample SHA256SUMS | shasum -a 256 -c -`, or `sha256sum -c` on Linux), then load it:
+`gunzip -c kong-sample-agent-1.0.0-amd64.tar.gz | docker load`. With
 internet access, build it: `docker build -t kong-sample-agent:1.0.0 examples/agent`. You can also skip Docker:
 set `GATEWAY_URL=https://localhost:8443` and `GATEWAY_API_KEY`, then `python3 examples/agent/agent.py "..."`.
 
