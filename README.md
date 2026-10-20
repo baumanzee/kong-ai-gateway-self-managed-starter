@@ -43,6 +43,18 @@ The proxy listens on `https://localhost:8443` (self-signed certificate; use `cur
 HTTPS only, so plain HTTP on port 8000 returns 426. The control plane Admin API listens on
 `127.0.0.1:8001`.
 
+## Sample agents
+
+`examples/agent/` is a small agent, one Python file in one container, that calls the gateway for model,
+MCP tool, and agent-to-agent traffic, for testing the setup end to end. See `examples/agent/README.md`.
+
+## Gateway logs
+
+The data plane writes one access line per request, including the caller's `X-Agent-Name` and `X-Request-Id`
+headers when it sends them: `docker compose logs -f kong-dp` in `targets/self-managed`. It logs at `info`
+level. For per-request plugin detail (about 40 lines per request), add `KONG_LOG_LEVEL=debug` to `.env` and
+run `up.sh` again.
+
 ## Changing the configuration
 
 Edit `config/ai.yaml`, run `targets/self-managed/sync.sh --diff` to see exactly what will change, then

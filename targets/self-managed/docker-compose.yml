@@ -79,6 +79,11 @@ services:
       KONG_CLUSTER_CONTROL_PLANE: kong-cp:8005
       KONG_CLUSTER_TELEMETRY_ENDPOINT: kong-cp:8006
       KONG_PROXY_LISTEN: 0.0.0.0:8000, 0.0.0.0:8443 ssl
+      # Log each proxied request with the caller's agent name and request id. Set KONG_LOG_LEVEL=debug in .env
+      # for per-request plugin detail (about 40 lines per request), then run up.sh again.
+      KONG_LOG_LEVEL: ${KONG_LOG_LEVEL:-info}
+      KONG_PROXY_ACCESS_LOG: "/dev/stdout agent_log"
+      KONG_NGINX_HTTP_LOG_FORMAT: "agent_log '$$remote_addr \"$$request\" status=$$status agent=$$http_x_agent_name request_id=$$http_x_request_id kong_request_id=$$kong_request_id upstream=$$upstream_addr time=$$request_time'"
     ports: ["8000:8000", "8443:8443"]
     healthcheck:
       test: ["CMD", "kong", "health"]

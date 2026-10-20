@@ -11,6 +11,7 @@ or GitHub can obtain the same files.
 |---|---|---|
 | `kong-ai-gateway-2.2.0-distroless-amd64.tar.gz` | `kong/kong-ai-gateway:2.2.0-distroless` (linux/amd64) from Docker Hub | None. Saved with `docker save`, then gzip. |
 | `postgres-16.4-amd64.tar.gz` | `postgres:16.4` (linux/amd64) from Docker Hub | None. Saved with `docker save`, then gzip. |
+| `kong-sample-agent-1.0.0-amd64.tar.gz` | `kong-sample-agent:1.0.0` (linux/amd64), built from `examples/agent` on the Docker Official Image `python:3.12-slim` | The image adds this repository's `agent.py` (Apache License 2.0) to the unmodified Python base image. Saved with `docker save`, then gzip. |
 | `deck_<version>_linux_amd64.tar.gz`, `deck_<version>_darwin_all.tar.gz` | decK release archives from the Kong/deck GitHub releases | None. Unmodified upstream files. |
 
 The checksums in `images/SHA256SUMS` let you confirm the files were not altered. Image IDs are listed in `images/README.md`.
@@ -27,6 +28,9 @@ The checksums in `images/SHA256SUMS` let you confirm the files were not altered.
   released under the PostgreSQL License. The image also contains other open source
   packages, each under its own license. See <https://www.postgresql.org/about/licence/>
   and the image's own package metadata.
+- **Python base image.** The Docker Official Image `python:3.12-slim` (Debian with Python). Python
+  is released under the Python Software Foundation License, and the image contains other open source
+  packages, each under its own license. See <https://docs.python.org/3/license.html>.
 - **decK.** Released by Kong under the Apache License 2.0. See
   <https://github.com/Kong/deck/blob/main/LICENSE>.
 

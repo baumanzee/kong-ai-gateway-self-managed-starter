@@ -8,6 +8,7 @@ Files (delivered separately from this repository):
 |---|---|
 | `kong-ai-gateway-2.2.0-distroless-amd64.tar.gz` | `kong/kong-ai-gateway:2.2.0-distroless` (linux/amd64) |
 | `postgres-16.4-amd64.tar.gz` | `postgres:16.4` (linux/amd64) |
+| `kong-sample-agent-1.0.0-amd64.tar.gz` | Optional: the sample agent image (`examples/agent`). Load it with `gunzip -c <file> \| docker load`; `load.sh` does not load it |
 | `deck_<version>_<os>.tar.gz` | decK command-line tool (see `../tools/README.md`) |
 | `SHA256SUMS` | checksums for all files above (also committed here) |
 

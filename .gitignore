@@ -4,3 +4,4 @@ targets/self-managed/.env
 dist/
 *.tar
 *.tar.gz
+__pycache__/
