@@ -1,6 +1,6 @@
 # Verification
 
-`tests/verify.sh [base-url]` runs seven checks (default base URL `https://localhost:8443`):
+`tests/verify.sh [base-url]` runs eight checks (default base URL `https://localhost:8443`):
 
 | Check | Expectation |
 |---|---|
@@ -8,6 +8,7 @@
 | MCP call without a key | rejected (401 or 403) |
 | MCP `tools/list` as the credit-and-income stage | exactly `pull-credit-report` and `verify-income` |
 | MCP `tools/list` as the risk-rating stage | exactly `score-risk` |
+| A permitted MCP tool call (`pull-credit-report` as the credit-and-income stage) | content returned from the upstream, no error |
 | Final-approval agent route called by the pre-verification stage | 403 |
 | Model call by a lending caller | 200 |
 | Repeated large model calls by the headless caller | 429 once the hourly token budget is spent |
@@ -41,3 +42,7 @@ curl -sk https://localhost:8443/mcp/underwriting \
 
 Change the key to another stage's key to see a different tool list. Agent routes live under
 `/agents/<name>` and are limited by the same consumer groups.
+
+## Sample agent
+
+`examples/agent/` shows the same gateway from the agent side, and what the data plane logs for each request. See `examples/agent/README.md`.

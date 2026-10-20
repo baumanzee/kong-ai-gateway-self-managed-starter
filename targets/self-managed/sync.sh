@@ -23,8 +23,28 @@ if ! ping_out=$(deck gateway ping --timeout "$TIMEOUT" 2>&1); then
 fi
 # Convert first, then diff/sync the converted file. 'deck ai sync' does the same two steps but does not
 # substitute the ${{ env }} placeholders, which would store the placeholder text as the consumer keys.
-tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
+tmp=$(mktemp); trap 'rm -f "$tmp" "$tmp.patched"' EXIT
 deck file ai2kong -s "$CFG" -o "$tmp"
+# ai2kong drops each MCP server's `url` and leaves its service at localhost:80, so tool calls would never reach
+# the upstream. Put the service's protocol, host, port and path back from the `url` in the config.
+mcp_urls=$(awk '
+  function flush() { if (name != "" && url != "") print name, url; name = ""; url = "" }
+  /^mcp_servers:/ { sect = 1; next }
+  /^[^ #]/ { flush(); sect = 0 }
+  sect && /^  - / { flush() }
+  sect && /^    name:/ { name = $2 }
+  sect && /^      url:/ { url = $2 }
+  END { flush() }' "$CFG")
+while read -r svc url; do
+  [ -n "$svc" ] || continue
+  scheme=${url%%://*}; rest=${url#*://}; hostport=${rest%%/*}; path=
+  case "$rest" in */*) path=/${rest#*/} ;; esac
+  host=${hostport%%:*}; port=443; [ "$scheme" = http ] && port=80
+  case "$hostport" in *:*) port=${hostport##*:} ;; esac
+  args=(--selector "\$..services[?(@.name==\"$svc\")]" --value "protocol:\"$scheme\"" --value "host:\"$host\"" --value "port:$port")
+  [ -n "$path" ] && [ "$path" != / ] && args+=(--value "path:\"$path\"")
+  deck file patch -s "$tmp" -o "$tmp.patched" "${args[@]}" && mv "$tmp.patched" "$tmp"
+done <<<"$mcp_urls"
 if [ "${1:-}" = "--diff" ]; then
   deck gateway diff --timeout "$TIMEOUT" --parallelism "$PARALLELISM" "$tmp"
 else

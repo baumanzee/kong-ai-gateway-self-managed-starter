@@ -15,6 +15,15 @@ code() { curl -sk -o /dev/null -w '%{http_code}' "$@"; }
 mcp_list() { curl -sk -X POST "$BASE/mcp/underwriting" -H "X-API-Key: $1" -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | grep -o '"name":"[a-z-]*"' | sort | tr '\n' ' '; }
+mcp_call() { # key tool: prints ok when the tool call came back with content and no error (it reached its upstream)
+  local h=(-H "X-API-Key: $1" -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream') sid out
+  sid=$(curl -sk -D - -o /dev/null "$BASE/mcp/underwriting" "${h[@]}" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"verify","version":"1"}}}' \
+    | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+  out=$(curl -sk "$BASE/mcp/underwriting" "${h[@]}" -H "Mcp-Session-Id: $sid" \
+    -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"$2\",\"arguments\":{}}}")
+  case "$out" in *'"isError":true'*|'') echo "error: $out" | cut -c1-160 ;; *'"content"'*) echo ok ;; *) echo "error: $out" | cut -c1-160 ;; esac
+}
 chat() { curl -sk -o /dev/null -w '%{http_code}' -X POST "$BASE/v1/chat/completions" -H "X-API-Key: $1" -H 'Content-Type: application/json' -d "$2"; }
 
 # The data plane receives config from the control plane a few seconds after sync; wait for the routes to exist.
@@ -32,6 +41,7 @@ rejected "no key rejected on model" "$(code -X POST "$BASE/v1/chat/completions" 
 rejected "no key rejected on MCP" "$(code -X POST "$BASE/mcp/underwriting" -H 'Content-Type: application/json' -d '{}')"
 check "credit stage sees only its tools" '"name":"pull-credit-report" "name":"verify-income" ' "$(mcp_list "$KEY_AGENT_CREDIT_INCOME")"
 check "risk stage sees only its tool" '"name":"score-risk" ' "$(mcp_list "$KEY_AGENT_RISK_RATING")"
+check "permitted tool call reaches its upstream" ok "$(mcp_call "$KEY_AGENT_CREDIT_INCOME" pull-credit-report)"
 check "agent route rejects out-of-group caller" 403 "$(code "$BASE/agents/final-approval" -H "X-API-Key: $KEY_AGENT_PREVERIFICATION")"
 check "model call allowed for lending caller" 200 "$(chat "$KEY_LOAN_OFFICER_APP" '{"model":"lending-llm","max_tokens":5,"messages":[{"role":"user","content":"Say OK"}]}')"
 big='{"model":"lending-llm","max_tokens":4000,"messages":[{"role":"user","content":"Write 3000 words about lending."}]}'
